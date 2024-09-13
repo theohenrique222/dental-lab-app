@@ -1,26 +1,55 @@
 <template>
-  <section class="bg-neutral-200">
+  <section class="bg-neutral-900 min-h-screen">
     <div class="container mx-auto px-4 sm:px-8">
       <div class="py-4">
-        <h1 class="text-4xl font-extrabold text-gray-800 mb-8 text-center">
-          Tabela de Preço
-        </h1>
-        
-        <div class="mb-6">
-          <input 
-            type="text" 
-            v-model="searchQuery" 
-            placeholder="Buscar" 
-            class="w-1/2 p-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring focus:border-blue-300"
-          />
+        <div class="">
+          <h1 class="text-4xl font-extrabold text-white mb-8 text-center">
+            Tabela de Preço
+          </h1>
         </div>
 
-        <div class="min-w-full shadow-lg rounded-lg overflow-hidden">
+        <div class="w-full justify-center flex p-5">
+          <div class="relative w-2/3">
+            <input
+              type="text"
+              v-model="searchQuery"
+              placeholder="Buscar"
+              class="w-full p-3 pl-10 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring focus:border-blue-300"
+            />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="1.5"
+              stroke="currentColor"
+              class="w-5 h-5 absolute top-1/2 left-3 transform -translate-y-1/2 text-gray-400"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
+              />
+            </svg>
+          </div>
+        </div>
+
+        <div
+          v-for="(services, category) in groupedServices"
+          :key="category"
+          class="min-w-full mb-8 shadow-lg rounded-lg overflow-hidden"
+        >
+          <div class="bg-gray-500 p-4 w-full flex justify-center">
+            <h2 class="text-xl font-bold text-white uppercase">
+              {{ category }}
+            </h2>
+          </div>
           <table class="min-w-full leading-normal bg-white rounded-lg">
             <thead>
               <tr class="bg-gray-100">
-                <th v-for="table in tables" :key="table.id"
-                  class="px-5 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
+                <th
+                  v-for="table in tables"
+                  :key="table.id"
+                  class="px-5 py-3 text-center border-b-2 border-gray-200 text-xs font-semibold text-gray-600 uppercase tracking-wider"
                 >
                   {{ table.title }}
                 </th>
@@ -28,28 +57,29 @@
             </thead>
             <tbody>
               <tr
-                v-for="(item, index) in filteredServices"
+                v-for="(item, index) in services"
                 :key="index"
-                class="hover:bg-gray-50 transition-colors duration-200"
+                class="hover:bg-gray-50 transition-colors duration-200 text-center"
               >
-                <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
+                <td
+                  class="px-5 py-5 border-b border-gray-200 bg-white text-sm border-r"
+                >
                   <p class="text-gray-900 whitespace-no-wrap">
                     {{ item.name }}
                   </p>
                 </td>
-                <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
+                <td
+                  class="px-5 py-5 border-b border-gray-200 bg-white text-sm border-r"
+                >
                   <p class="text-gray-600 whitespace-no-wrap">
                     {{ item.description }}
                   </p>
                 </td>
-                <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
+                <td
+                  class="px-5 py-5 border-b border-gray-200 bg-white text-sm border-r"
+                >
                   <p class="text-gray-900 whitespace-no-wrap">
                     R$ {{ item.price }}
-                  </p>
-                </td>
-                <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
-                  <p class="text-gray-600 whitespace-no-wrap">
-                    {{ formatDate(item.updated_at) }}
                   </p>
                 </td>
               </tr>
@@ -68,44 +98,62 @@ export default {
   data() {
     return {
       services: [],
-      searchQuery: "", 
+      categories: [],
+      searchQuery: "",
       tables: [
         { id: 1, title: "Nome" },
         { id: 2, title: "Descrição" },
         { id: 3, title: "Valor" },
-        { id: 4, title: "Última atualização" },
-      ]
+      ],
     };
   },
   computed: {
     filteredServices() {
-      return this.services.filter(service => {
+      return this.services.filter((service) => {
         const searchLower = this.searchQuery.toLowerCase();
         return (
           service.name.toLowerCase().includes(searchLower) ||
           service.description.toLowerCase().includes(searchLower)
         );
       });
-    }
+    },
+    groupedServices() {
+      return this.filteredServices.reduce((groups, service) => {
+        const categoryName = this.getCategoryName(service.category_id);
+        if (!groups[categoryName]) {
+          groups[categoryName] = [];
+        }
+        groups[categoryName].push(service);
+        return groups;
+      }, {});
+    },
   },
   methods: {
-    fetchServices() {
-      axios
-        .get("http://dental-lab.test/api/services")
-        .then((response) => {
-          this.services = response.data;
-        })
-        .catch((error) => {
-          console.error("Erro ao buscar os dados:", error);
-        });
+    async fetchData() {
+      try {
+        const [servicesResponse, categoriesResponse] = await Promise.all([
+          axios.get("http://dental-lab.test/api/services"),
+          axios.get("http://dental-lab.test/api/category"),
+        ]);
+        this.services = servicesResponse.data;
+        this.categories = categoriesResponse.data;
+      } catch (error) {
+        console.error("Erro ao buscar os dados:", error);
+      }
     },
+
+    getCategoryName(categoryId) {
+      const category = this.categories.find((cat) => cat.id === categoryId);
+      return category ? category.category : "Desconhecida";
+    },
+
     formatDate(date) {
       const options = { year: "numeric", month: "long", day: "numeric" };
       return new Date(date).toLocaleDateString("pt-BR", options);
     },
   },
   mounted() {
-    this.fetchServices();
+    this.fetchData();
   },
 };
 </script>
