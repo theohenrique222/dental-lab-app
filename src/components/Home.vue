@@ -124,8 +124,8 @@ export default {
     async fetchData() {
       try {
         const [servicesResponse, categoriesResponse] = await Promise.all([
-          axios.get("http://dental-lab.test/api/services"),
-          axios.get("http://dental-lab.test/api/category"),
+          axios.get("http://localhost:8000/api/services"),
+          axios.get("http://localhost:8000/api/category"),
         ]);
         this.services = servicesResponse.data;
         this.categories = categoriesResponse.data;
